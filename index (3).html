@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英语记忆卡片</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#60a5fa',
+                        accent: '#93c5fd',
+                        neutral: '#f1f5f9',
+                        'neutral-dark': '#e2e8f0'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'flip': 'flip 0.6s ease-in-out',
+                    },
+                    keyframes: {
+                        flip: {
+                            '0%': { transform: 'rotateY(0deg)' },
+                            '100%': { transform: 'rotateY(180deg)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .card-flip {
+                perspective: 1000px;
+            }
+            .card-inner {
+                transition: transform 0.6s;
+                transform-style: preserve-3d;
+            }
+            .card-front, .card-back {
+                backface-visibility: hidden;
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+            }
+            .card-back {
+                transform: rotateY(180deg);
+            }
+            .flipped .card-inner {
+                transform: rotateY(180deg);
+            }
+            .scrollbar-thin {
+                scrollbar-width: thin;
+            }
+            .scrollbar-thin::-webkit-scrollbar {
+                width: 6px;
+            }
+            .scrollbar-thin::-webkit-scrollbar-track {
+                background: #f1f5f9;
+            }
+            .scrollbar-thin::-webkit-scrollbar-thumb {
+                background-color: #cbd5e1;
+                border-radius: 3px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">英语记忆卡片</h1>
+            <p class="text-gray-600">通过翻牌记忆中英文对照内容</p>
+        </header>
+
+        <div class="flex flex-col lg:flex-row gap-6">
+            <!-- 左侧内容列表 -->
+            <div class="lg:w-1/3 bg-white rounded-lg shadow-md p-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">内容列表</h2>
+                    <div class="flex gap-2">
+                        <button id="addBtn" class="bg-primary hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm flex items-center gap-1 transition-colors">
+                            <i class="fa fa-plus"></i> 添加
+                        </button>
+                        <button id="importBtn" class="bg-secondary hover:bg-blue-500 text-white px-3 py-1 rounded-md text-sm flex items-center gap-1 transition-colors">
+                            <i class="fa fa-upload"></i> 导入
+                        </button>
+                        <button id="exportBtn" class="bg-accent hover:bg-blue-400 text-white px-3 py-1 rounded-md text-sm flex items-center gap-1 transition-colors">
+                            <i class="fa fa-download"></i> 导出
+                        </button>
+                        <button id="deleteSelectedBtn" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-md text-sm flex items-center gap-1 transition-colors" style="z-index: 10;">
+                            <i class="fa fa-trash"></i> 删除选中
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 文件夹模块 -->
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-sm font-medium text-gray-700">文件夹</h3>
+                        <button id="addFolderBtn" class="text-primary hover:text-blue-700 text-sm flex items-center gap-1">
+                            <i class="fa fa-plus-circle"></i> 新建文件夹
+                        </button>
+                    </div>
+                    <div class="flex gap-2 mb-2 overflow-x-auto pb-1 scrollbar-thin">
+                        <button class="folder-btn bg-primary text-white px-3 py-1 rounded-full text-sm whitespace-nowrap flex items-center gap-1" data-folder="all">
+                            <i class="fa fa-folder-open"></i> 全部
+                        </button>
+                        <button class="folder-btn bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded-full text-sm whitespace-nowrap flex items-center gap-1" data-folder="default">
+                            <i class="fa fa-folder"></i> 默认文件夹
+                        </button>
+                        <!-- 动态生成的文件夹按钮将在这里显示 -->
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="flex gap-2">
+                        <input type="text" id="searchInput" placeholder="搜索内容..." class="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                        <button id="selectAllBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-md text-sm transition-colors">
+                            全选
+                        </button>
+                    </div>
+                </div>
+
+                <div class="max-h-[calc(100vh-280px)] overflow-y-auto scrollbar-thin">
+                    <ul id="contentList" class="space-y-2">
+                        <!-- 内容列表将通过JavaScript动态生成 -->
+                    </ul>
+                </div>
+
+                <div class="mt-4 flex justify-between items-center">
+                    <div>
+                        <span id="selectedCount" class="text-sm text-gray-600">已选择: 0</span>
+                        <span id="totalCount" class="text-sm text-gray-600 ml-2">总计: 0</span>
+                    </div>
+                    <button id="startBtn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed">
+                        开始记忆
+                    </button>
+                </div>
+            </div>
+
+            <!-- 右侧卡片区域 -->
+            <div class="lg:w-2/3 flex flex-col items-center justify-center">
+                <div id="cardContainer" class="w-full max-w-2xl aspect-[4/3] mb-6 relative hidden">
+                    <div id="memoryCard" class="card-flip w-full h-full">
+                        <div class="card-inner w-full h-full">
+                            <!-- 卡片正面（中文） -->
+                            <div class="card-front bg-white rounded-lg shadow-lg p-8 flex flex-col items-center justify-center h-full">
+                                <div class="absolute top-4 left-4 text-gray-500">
+                                    <span id="cardIndex">1/1</span>
+                                </div>
+
+                                <p id="chineseContent" class="text-3xl text-center text-gray-700 mb-6">点击卡片翻转</p>
+                                <div class="absolute bottom-4 right-4 text-gray-500">
+                                    <i class="fa fa-hand-pointer-o text-xl"></i>
+                                </div>
+                            </div>
+                            <!-- 卡片背面（英文） -->
+                            <div class="card-back bg-blue-50 rounded-lg shadow-lg p-8 flex flex-col items-center justify-center h-full">
+                                <div class="absolute top-4 left-4 text-gray-500">
+                                    <span id="cardIndexBack">1/1</span>
+                                </div>
+
+                                <p id="englishContent" class="text-3xl text-center text-gray-700 mb-6">Click to flip</p>
+                                <div class="absolute bottom-4 right-4 text-gray-500">
+                                    <i class="fa fa-hand-pointer-o text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="emptyState" class="text-center py-12">
+                    <div class="bg-white rounded-lg shadow-md p-8 max-w-md mx-auto">
+                        <i class="fa fa-book text-5xl text-gray-400 mb-4"></i>
+                        <h3 class="text-xl font-semibold text-gray-700 mb-2">准备开始记忆</h3>
+                        <p class="text-gray-600 mb-6">请从左侧列表中选择要记忆的内容，然后点击"开始记忆"按钮</p>
+                        <div class="flex justify-center gap-4">
+                            <button id="addFirstBtn" class="bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-colors">
+                                <i class="fa fa-plus"></i> 添加第一条内容
+                            </button>
+                            <button id="importFirstBtn" class="bg-secondary hover:bg-blue-500 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-colors">
+                                <i class="fa fa-upload"></i> 导入内容
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="navigationControls" class="flex justify-between items-center gap-4 mt-6 hidden">
+                    <button id="exitBtn" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-colors">
+                        <i class="fa fa-arrow-left"></i> 退出学习
+                    </button>
+                    <div class="flex gap-4">
+                        <button id="prevBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md flex items-center gap-2 transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed">
+                            <i class="fa fa-arrow-left"></i> 上一张
+                        </button>
+                        <div class="flex gap-2">
+                            <button id="knownBtn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-colors">
+                                <i class="fa fa-check"></i> 认识
+                            </button>
+                            <button id="unknownBtn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-colors">
+                                <i class="fa fa-times"></i> 不认识
+                            </button>
+                        </div>
+                        <button id="nextBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md flex items-center gap-2 transition-colors">
+                            下一张 <i class="fa fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="studyStats" class="mt-6 bg-white rounded-lg shadow-md p-4 w-full max-w-2xl hidden">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">学习统计</h3>
+                    <div class="flex justify-between text-sm">
+                        <div>
+                            <span class="text-gray-600">总卡片数:</span>
+                            <span id="totalCards" class="font-medium ml-1">0</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">已学习:</span>
+                            <span id="studiedCards" class="font-medium ml-1">0</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">认识:</span>
+                            <span id="knownCards" class="font-medium text-green-600 ml-1">0</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">不认识:</span>
+                            <span id="unknownCards" class="font-medium text-red-600 ml-1">0</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">完成率:</span>
+                            <span id="completionRate" class="font-medium ml-1">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加内容模态框 -->
+    <div id="addModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-gray-800">添加记忆内容</h3>
+                <button class="closeModal text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <form id="addForm">
+                <div class="mb-4">
+                    <label for="chineseInput" class="block text-gray-700 mb-2">中文</label>
+                    <textarea id="chineseInput" rows="3" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="输入中文内容（词汇、短语或句子）" required></textarea>
+                </div>
+                <div class="mb-4">
+                    <label for="englishInput" class="block text-gray-700 mb-2">English</label>
+                    <textarea id="englishInput" rows="3" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Enter English content (word, phrase or sentence)" required></textarea>
+                </div>
+                <div class="mb-4">
+                    <label for="folderSelect" class="block text-gray-700 mb-2">文件夹</label>
+                    <select id="folderSelect" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                        <!-- 文件夹选项将通过JavaScript动态生成 -->
+                    </select>
+                </div>
+                <div class="flex justify-end gap-3">
+                    <button type="button" class="closeModal bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md transition-colors">
+                        取消
+                    </button>
+                    <button type="submit" class="bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors">
+                        保存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 导入内容模态框 -->
+    <div id="importModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-gray-800">导入内容</h3>
+                <button class="closeModal text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <div class="mb-4">
+                <p class="text-gray-600 mb-2">请输入或粘贴中英文对照内容，每行一条，格式如下：</p>
+                <div class="bg-gray-100 p-3 rounded-md text-sm text-gray-700 font-mono">
+                    中文内容 | English content
+                </div>
+                <p class="text-gray-500 text-sm mt-1">例如：你好 | Hello</p>
+            </div>
+            <form id="importForm">
+                <div class="mb-4">
+                    <textarea id="importTextarea" rows="8" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="输入或粘贴内容..." required></textarea>
+                </div>
+                <div class="flex justify-end gap-3">
+                    <button type="button" class="closeModal bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md transition-colors">
+                        取消
+                    </button>
+                    <button type="submit" class="bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors">
+                        导入
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 新建文件夹模态框 -->
+    <div id="folderModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-gray-800">新建文件夹</h3>
+                <button class="closeModal text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <form id="folderForm">
+                <div class="mb-4">
+                    <label for="folderName" class="block text-gray-700 mb-2">文件夹名称</label>
+                    <input type="text" id="folderName" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="输入文件夹名称" required>
+                </div>
+                <div class="flex justify-end gap-3">
+                    <button type="button" class="closeModal bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md transition-colors">
+                        取消
+                    </button>
+                    <button type="submit" class="bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors">
+                        创建
+                    </button>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 学习完成模态框 -->
+    <div id="completeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md text-center">
+            <div class="text-green-500 mb-4">
+                <i class="fa fa-check-circle text-5xl"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-800 mb-2">学习完成！</h3>
+            <p class="text-gray-600 mb-6">你已完成所有选择的内容学习</p>
+            <div class="bg-gray-100 rounded-lg p-4 mb-6">
+                <div class="grid grid-cols-2 gap-4 text-left">
+                    <div>
+                        <p class="text-gray-600 text-sm">总卡片数:</p>
+                        <p id="completeTotal" class="font-medium">0</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-600 text-sm">认识:</p>
+                        <p id="completeKnown" class="font-medium text-green-600">0</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-600 text-sm">不认识:</p>
+                        <p id="completeUnknown" class="font-medium text-red-600">0</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-600 text-sm">正确率:</p>
+                        <p id="completeAccuracy" class="font-medium">0%</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-center gap-3">
+                <button id="reviewUnknownBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors">
+                    复习不认识的
+                </button>
+                <button id="restartBtn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md transition-colors">
+                    重新开始
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 应用状态
+        const appState = {
+            items: [], // 所有学习项目
+            folders: [], // 文件夹列表
+            currentFolder: 'all', // 当前选中的文件夹
+            selectedItems: [], // 当前选择的项目
+            currentIndex: 0, // 当前卡片索引
+            studyMode: false, // 是否处于学习模式
+            knownItems: [], // 已掌握的项目
+            unknownItems: [], // 未掌握的项目
+            flipped: false // 当前卡片是否翻转
+        };
+
+        // DOM 元素
+        const elements = {
+            contentList: document.getElementById('contentList'),
+            selectedCount: document.getElementById('selectedCount'),
+            totalCount: document.getElementById('totalCount'),
+            startBtn: document.getElementById('startBtn'),
+            cardContainer: document.getElementById('cardContainer'),
+            emptyState: document.getElementById('emptyState'),
+            navigationControls: document.getElementById('navigationControls'),
+            studyStats: document.getElementById('studyStats'),
+            memoryCard: document.getElementById('memoryCard'),
+            chineseContent: document.getElementById('chineseContent'),
+            englishContent: document.getElementById('englishContent'),
+            cardIndex: document.getElementById('cardIndex'),
+            cardIndexBack: document.getElementById('cardIndexBack'),
+            prevBtn: document.getElementById('prevBtn'),
+            nextBtn: document.getElementById('nextBtn'),
+            knownBtn: document.getElementById('knownBtn'),
+            unknownBtn: document.getElementById('unknownBtn'),
+            totalCards: document.getElementById('totalCards'),
+            studiedCards: document.getElementById('studiedCards'),
+            knownCards: document.getElementById('knownCards'),
+            unknownCards: document.getElementById('unknownCards'),
+            completionRate: document.getElementById('completionRate'),
+            addBtn: document.getElementById('addBtn'),
+            importBtn: document.getElementById('importBtn'),
+            exportBtn: document.getElementById('exportBtn'),
+            addFirstBtn: document.getElementById('addFirstBtn'),
+            importFirstBtn: document.getElementById('importFirstBtn'),
+            selectAllBtn: document.getElementById('selectAllBtn'),
+            deleteSelectedBtn: document.getElementById('deleteSelectedBtn'),
+            addFolderBtn: document.getElementById('addFolderBtn'),
+            searchInput: document.getElementById('searchInput'),
+            addModal: document.getElementById('addModal'),
+            importModal: document.getElementById('importModal'),
+            completeModal: document.getElementById('completeModal'),
+            addForm: document.getElementById('addForm'),
+            importForm: document.getElementById('importForm'),
+            chineseInput: document.getElementById('chineseInput'),
+            englishInput: document.getElementById('englishInput'),
+            importTextarea: document.getElementById('importTextarea'),
+            completeTotal: document.getElementById('completeTotal'),
+            completeKnown: document.getElementById('completeKnown'),
+            completeUnknown: document.getElementById('completeUnknown'),
+            completeAccuracy: document.getElementById('completeAccuracy'),
+            reviewUnknownBtn: document.getElementById('reviewUnknownBtn'),
+            restartBtn: document.getElementById('restartBtn'),
+            folderModal: document.getElementById('folderModal'),
+            folderForm: document.getElementById('folderForm'),
+            folderName: document.getElementById('folderName'),
+            folderSelect: document.getElementById('folderSelect')
+        };
+
+        // 初始化应用
+        function initApp() {
+            // 从本地存储加载数据
+            loadData();
+            
+            // 渲染内容列表
+            renderContentList();
+            
+            // 更新计数
+            updateCounts();
+            
+            // 绑定事件
+            bindEvents();
+        }
+
+        // 从本地存储加载数据
+        function loadData() {
+            // 加载项目数据
+            const savedItems = localStorage.getItem('englishMemoryItems');
+            if (savedItems) {
+                appState.items = JSON.parse(savedItems);
+            } else {
+                // 添加一些示例数据
+                appState.items = [
+                    { id: generateId(), chinese: '你好', english: 'Hello', selected: false, folder: 'default' },
+                    { id: generateId(), chinese: '早上好', english: 'Good morning', selected: false, folder: 'default' },
+                    { id: generateId(), chinese: '谢谢', english: 'Thank you', selected: false, folder: 'default' },
+                    { id: generateId(), chinese: '再见', english: 'Goodbye', selected: false, folder: 'default' },
+                    { id: generateId(), chinese: '我很高兴见到你', english: 'I am glad to meet you', selected: false, folder: 'default' }
+                ];
+                saveData();
+            }
+            
+            // 加载文件夹数据
+            const savedFolders = localStorage.getItem('englishMemoryFolders');
+            if (savedFolders) {
+                appState.folders = JSON.parse(savedFolders);
+            } else {
+                // 添加默认文件夹
+                appState.folders = [
+                    { id: 'default', name: '默认文件夹' }
+                ];
+                saveFolders();
+            }
+        }
+        
+        // 保存文件夹数据到本地存储
+        function saveFolders() {
+            localStorage.setItem('englishMemoryFolders', JSON.stringify(appState.folders));
+        }
+
+        // 保存数据到本地存储
+        function saveData() {
+            localStorage.setItem('englishMemoryItems', JSON.stringify(appState.items));
+        }
+
+        // 生成唯一ID
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+        }
+
+        // 渲染文件夹列表
+        function renderFolders() {
+            const folderContainer = document.querySelector('.flex.gap-2.mb-2.overflow-x-auto');
+            
+            // 清除现有的自定义文件夹按钮（保留"全部"和"默认文件夹"）
+            document.querySelectorAll('.folder-btn[data-folder]:not([data-folder="all"]):not([data-folder="default"])').forEach(btn => {
+                btn.remove();
+            });
+            
+            // 添加自定义文件夹按钮
+            appState.folders.forEach(folder => {
+                if (folder.id !== 'default') { // 跳过默认文件夹，因为它已经在HTML中定义了
+                    const folderBtn = document.createElement('button');
+                    folderBtn.className = `folder-btn bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded-full text-sm whitespace-nowrap flex items-center gap-1 ${appState.currentFolder === folder.id ? 'bg-primary text-white' : ''}`;
+                    folderBtn.dataset.folder = folder.id;
+                    folderBtn.innerHTML = `
+                        <i class="fa fa-folder"></i> ${folder.name}
+                        <button class="delete-folder-btn ml-1 text-xs hover:text-red-500 p-1" data-folder-id="${folder.id}">
+                            <i class="fa fa-times-circle"></i>
+                        </button>
+                    `;
+                    folderContainer.appendChild(folderBtn);
+                }
+            });
+            
+            // 更新文件夹按钮状态
+            document.querySelectorAll('.folder-btn').forEach(btn => {
+                if (btn.dataset.folder === appState.currentFolder) {
+                    btn.classList.add('bg-primary', 'text-white');
+                    btn.classList.remove('bg-gray-200', 'hover:bg-gray-300', 'text-gray-700');
+                } else {
+                    btn.classList.remove('bg-primary', 'text-white');
+                    if (btn.dataset.folder !== 'all') {
+                        btn.classList.add('bg-gray-200', 'hover:bg-gray-300', 'text-gray-700');
+                    }
+                }
+            });
+            
+            // 绑定文件夹按钮事件
+            bindFolderEvents();
+        }
+
+        // 渲染内容列表
+        function renderContentList() {
+            const searchTerm = elements.searchInput.value.toLowerCase();
+            
+            // 先按文件夹筛选
+            let filteredItems = appState.currentFolder === 'all' 
+                ? appState.items 
+                : appState.items.filter(item => item.folder === appState.currentFolder);
+            
+            // 再按搜索词筛选
+            filteredItems = filteredItems.filter(item => 
+                item.chinese.toLowerCase().includes(searchTerm) || 
+                item.english.toLowerCase().includes(searchTerm)
+            );
+
+            elements.contentList.innerHTML = '';
+            
+            if (filteredItems.length === 0) {
+                const emptyItem = document.createElement('li');
+                emptyItem.className = 'text-gray-500 text-center py-4';
+                emptyItem.textContent = '没有找到匹配的内容';
+                elements.contentList.appendChild(emptyItem);
+                return;
+            }
+
+            filteredItems.forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'flex items-center gap-3 p-3 rounded-md hover:bg-gray-100 transition-colors';
+                
+                // 获取文件夹名称
+                const folder = appState.folders.find(f => f.id === item.folder) || { name: '未分类' };
+                
+                li.innerHTML = `
+                    <input type="checkbox" class="item-checkbox w-5 h-5 rounded text-primary focus:ring-primary" data-id="${item.id}" ${item.selected ? 'checked' : ''}>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                            <p class="text-gray-800 font-medium truncate">${item.chinese}</p>
+                            <span class="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded">${folder.name}</span>
+                        </div>
+                        <p class="text-gray-500 text-sm truncate">${item.english}</p>
+                    </div>
+                    <div class="flex gap-1">
+                        <button class="edit-btn text-gray-500 hover:text-primary p-1 rounded-full" data-id="${item.id}">
+                            <i class="fa fa-pencil"></i>
+                        </button>
+                        <button class="delete-btn text-gray-500 hover:text-red-500 p-1 rounded-full" data-id="${item.id}">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                elements.contentList.appendChild(li);
+            });
+
+            // 绑定列表项事件
+            bindListItemEvents();
+        }
+
+        // 绑定列表项事件
+        function bindListItemEvents() {
+            // 复选框事件
+            document.querySelectorAll('.item-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const id = e.target.dataset.id;
+                    const item = appState.items.find(item => item.id === id);
+                    if (item) {
+                        item.selected = e.target.checked;
+                        saveData();
+                        updateCounts();
+                    }
+                });
+            });
+
+            // 编辑按钮事件
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.target.closest('.edit-btn').dataset.id;
+                    const item = appState.items.find(item => item.id === id);
+                    if (item) {
+                        editItem(item);
+                    }
+                });
+            });
+
+            // 删除按钮事件
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.target.closest('.delete-btn').dataset.id;
+                    deleteItem(id);
+                });
+            });
+        }
+
+        // 更新计数
+        function updateCounts() {
+            const total = appState.items.length;
+            const selected = appState.items.filter(item => item.selected).length;
+            
+            elements.totalCount.textContent = `总计: ${total}`;
+            elements.selectedCount.textContent = `已选择: ${selected}`;
+            
+            // 启用/禁用开始按钮
+            elements.startBtn.disabled = selected === 0;
+        }
+
+        // 绑定事件
+        function bindEvents() {
+            // 开始记忆按钮
+            elements.startBtn.addEventListener('click', startStudy);
+            
+            // 卡片翻转
+            elements.memoryCard.addEventListener('click', flipCard);
+            
+            // 导航按钮
+            elements.prevBtn.addEventListener('click', showPreviousCard);
+            elements.nextBtn.addEventListener('click', showNextCard);
+            elements.knownBtn.addEventListener('click', markAsKnown);
+            elements.unknownBtn.addEventListener('click', markAsUnknown);
+            
+            // 退出学习按钮
+            document.getElementById('exitBtn').addEventListener('click', exitStudyMode);
+            
+            // 添加按钮
+            elements.addBtn.addEventListener('click', () => openAddModal());
+            elements.addFirstBtn.addEventListener('click', () => openAddModal());
+            
+            // 导入按钮
+            elements.importBtn.addEventListener('click', () => openImportModal());
+            elements.importFirstBtn.addEventListener('click', () => openImportModal());
+            
+            // 导出按钮
+            elements.exportBtn.addEventListener('click', exportData);
+            
+            // 全选按钮
+            elements.selectAllBtn.addEventListener('click', toggleSelectAll);
+            
+            // 删除选中按钮
+            elements.deleteSelectedBtn.addEventListener('click', function() {
+                console.log('删除选中按钮被点击');
+                deleteSelectedItems();
+            });
+            
+            // 新建文件夹按钮
+            elements.addFolderBtn.addEventListener('click', openFolderModal);
+            
+            // 文件夹表单提交
+            elements.folderForm.addEventListener('submit', handleFolderFormSubmit);
+            
+            // 搜索输入
+            elements.searchInput.addEventListener('input', renderContentList);
+            
+            // 添加表单提交
+            elements.addForm.addEventListener('submit', handleAddFormSubmit);
+            
+            // 导入表单提交
+            elements.importForm.addEventListener('submit', handleImportFormSubmit);
+            
+            // 关闭模态框
+            document.querySelectorAll('.closeModal').forEach(btn => {
+                btn.addEventListener('click', closeModal);
+            });
+            
+            // 完成模态框按钮
+            elements.reviewUnknownBtn.addEventListener('click', reviewUnknownItems);
+            elements.restartBtn.addEventListener('click', restartStudy);
+        }
+
+        // 开始学习
+        function startStudy() {
+            // 获取选中的项目
+            appState.selectedItems = appState.items.filter(item => item.selected);
+            
+            if (appState.selectedItems.length === 0) {
+                alert('请先选择要学习的内容');
+                return;
+            }
+            
+            // 重置学习状态
+            appState.currentIndex = 0;
+            appState.studyMode = true;
+            appState.knownItems = [];
+            appState.unknownItems = [];
+            appState.flipped = false;
+            
+            // 隐藏内容列表区域
+            const contentListArea = document.querySelector('.lg\\:w-1\\/3');
+            contentListArea.classList.add('hidden');
+            
+            // 调整卡片区域宽度
+            const cardArea = document.querySelector('.lg\\:w-2\\/3');
+            cardArea.classList.remove('lg:w-2/3');
+            cardArea.classList.add('lg:w-full');
+            
+            // 更新UI
+            elements.emptyState.classList.add('hidden');
+            elements.cardContainer.classList.remove('hidden');
+            elements.navigationControls.classList.remove('hidden');
+            elements.studyStats.classList.remove('hidden');
+            
+            // 显示第一张卡片
+            showCard(appState.currentIndex);
+            
+            // 更新导航按钮状态
+            updateNavigationButtons();
+            
+            // 更新学习统计
+            updateStudyStats();
+        }
+
+        // 显示卡片
+        function showCard(index) {
+            if (index < 0 || index >= appState.selectedItems.length) return;
+            
+            const item = appState.selectedItems[index];
+            
+            // 更新卡片内容
+            elements.chineseContent.textContent = item.chinese;
+            elements.englishContent.textContent = item.english;
+            
+            // 更新卡片索引
+            const indexText = `${index + 1}/${appState.selectedItems.length}`;
+            elements.cardIndex.textContent = indexText;
+            elements.cardIndexBack.textContent = indexText;
+            
+            // 重置卡片翻转状态
+            appState.flipped = false;
+            elements.memoryCard.classList.remove('flipped');
+        }
+
+        // 翻转卡片
+        function flipCard() {
+            appState.flipped = !appState.flipped;
+            elements.memoryCard.classList.toggle('flipped', appState.flipped);
+        }
+
+        // 显示上一张卡片
+        function showPreviousCard() {
+            if (appState.currentIndex > 0) {
+                appState.currentIndex--;
+                showCard(appState.currentIndex);
+                updateNavigationButtons();
+                updateStudyStats();
+            }
+        }
+
+        // 显示下一张卡片
+        function showNextCard() {
+            if (appState.currentIndex < appState.selectedItems.length - 1) {
+                appState.currentIndex++;
+                showCard(appState.currentIndex);
+                updateNavigationButtons();
+                updateStudyStats();
+            }
+        }
+
+        // 标记为已认识
+        function markAsKnown() {
+            const currentItem = appState.selectedItems[appState.currentIndex];
+            
+            // 如果已经在不认识列表中，移除
+            const unknownIndex = appState.unknownItems.findIndex(item => item.id === currentItem.id);
+            if (unknownIndex !== -1) {
+                appState.unknownItems.splice(unknownIndex, 1);
+            }
+            
+            // 如果不在认识列表中，添加
+            if (!appState.knownItems.some(item => item.id === currentItem.id)) {
+                appState.knownItems.push(currentItem);
+            }
+            
+            // 移动到下一张卡片
+            if (appState.currentIndex < appState.selectedItems.length - 1) {
+                showNextCard();
+            } else {
+                // 学习完成
+                studyComplete();
+            }
+            
+            updateStudyStats();
+        }
+
+        // 标记为不认识
+        function markAsUnknown() {
+            const currentItem = appState.selectedItems[appState.currentIndex];
+            
+            // 如果已经在认识列表中，移除
+            const knownIndex = appState.knownItems.findIndex(item => item.id === currentItem.id);
+            if (knownIndex !== -1) {
+                appState.knownItems.splice(knownIndex, 1);
+            }
+            
+            // 如果不在不认识列表中，添加
+            if (!appState.unknownItems.some(item => item.id === currentItem.id)) {
+                appState.unknownItems.push(currentItem);
+            }
+            
+            // 移动到下一张卡片
+            if (appState.currentIndex < appState.selectedItems.length - 1) {
+                showNextCard();
+            } else {
+                // 学习完成
+                studyComplete();
+            }
+            
+            updateStudyStats();
+        }
+
+        // 更新导航按钮状态
+        function updateNavigationButtons() {
+            elements.prevBtn.disabled = appState.currentIndex === 0;
+            elements.nextBtn.disabled = appState.currentIndex === appState.selectedItems.length - 1;
+        }
+
+        // 更新学习统计
+        function updateStudyStats() {
+            const total = appState.selectedItems.length;
+            const studied = appState.knownItems.length + appState.unknownItems.length;
+            const known = appState.knownItems.length;
+            const unknown = appState.unknownItems.length;
+            const rate = total > 0 ? Math.round((studied / total) * 100) : 0;
+            
+            elements.totalCards.textContent = total;
+            elements.studiedCards.textContent = studied;
+            elements.knownCards.textContent = known;
+            elements.unknownCards.textContent = unknown;
+            elements.completionRate.textContent = `${rate}%`;
+        }
+
+        // 学习完成
+        function studyComplete() {
+            const total = appState.selectedItems.length;
+            const known = appState.knownItems.length;
+            const unknown = appState.unknownItems.length;
+            const accuracy = total > 0 ? Math.round((known / total) * 100) : 0;
+            
+            // 更新完成统计
+            elements.completeTotal.textContent = total;
+            elements.completeKnown.textContent = known;
+            elements.completeUnknown.textContent = unknown;
+            elements.completeAccuracy.textContent = `${accuracy}%`;
+            
+            // 显示完成模态框
+            elements.completeModal.classList.remove('hidden');
+        }
+
+        // 恢复内容列表显示
+        function restoreContentList() {
+            // 显示内容列表区域
+            const contentListArea = document.querySelector('.lg\\:w-1\\/3');
+            if (contentListArea) {
+                contentListArea.classList.remove('hidden');
+            }
+            
+            // 恢复卡片区域宽度
+            const cardArea = document.querySelector('.lg\\:w-full');
+            if (cardArea) {
+                cardArea.classList.remove('lg:w-full');
+                cardArea.classList.add('lg:w-2/3');
+            }
+            
+            // 重置学习模式状态
+            appState.studyMode = false;
+        }
+
+        // 复习不认识的项目
+        function reviewUnknownItems() {
+            if (appState.unknownItems.length === 0) return;
+            
+            // 设置选中项目为不认识的项目
+            appState.selectedItems = [...appState.unknownItems];
+            
+            // 重置学习状态
+            appState.currentIndex = 0;
+            appState.knownItems = [];
+            appState.unknownItems = [];
+            appState.flipped = false;
+            
+            // 关闭模态框
+            closeModal();
+            
+            // 显示第一张卡片
+            showCard(appState.currentIndex);
+            
+            // 更新导航按钮状态
+            updateNavigationButtons();
+            
+            // 更新学习统计
+            updateStudyStats();
+        }
+
+        // 重新开始学习
+        function restartStudy() {
+            // 关闭模态框
+            closeModal();
+            
+            // 重置学习状态
+            appState.currentIndex = 0;
+            appState.knownItems = [];
+            appState.unknownItems = [];
+            appState.flipped = false;
+            
+            // 显示第一张卡片
+            showCard(appState.currentIndex);
+            
+            // 更新导航按钮状态
+            updateNavigationButtons();
+            
+            // 更新学习统计
+            updateStudyStats();
+        }
+
+        // 退出学习模式
+        function exitStudyMode() {
+            // 恢复内容列表显示
+            restoreContentList();
+            
+            // 隐藏学习相关元素
+            elements.cardContainer.classList.add('hidden');
+            elements.navigationControls.classList.add('hidden');
+            elements.studyStats.classList.add('hidden');
+            elements.emptyState.classList.remove('hidden');
+            
+            // 重置学习状态
+            appState.currentIndex = 0;
+            appState.knownItems = [];
+            appState.unknownItems = [];
+            appState.flipped = false;
+        }
+
+        // 打开添加模态框
+        function openAddModal(item = null) {
+            // 如果是编辑模式，填充表单
+            if (item) {
+                elements.chineseInput.value = item.chinese;
+                elements.englishInput.value = item.english;
+                elements.addForm.dataset.editId = item.id;
+            } else {
+                // 清空表单
+                elements.addForm.reset();
+                delete elements.addForm.dataset.editId;
+            }
+            
+            // 显示模态框
+            elements.addModal.classList.remove('hidden');
+            
+            // 聚焦第一个输入框
+            elements.chineseInput.focus();
+        }
+
+        // 打开导入模态框
+        function openImportModal() {
+            // 清空表单
+            elements.importForm.reset();
+            
+            // 显示模态框
+            elements.importModal.classList.remove('hidden');
+            
+            // 聚焦输入框
+            elements.importTextarea.focus();
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            elements.addModal.classList.add('hidden');
+            elements.importModal.classList.add('hidden');
+            elements.completeModal.classList.add('hidden');
+            elements.folderModal.classList.add('hidden');
+        }
+
+        // 处理添加表单提交
+        function handleAddFormSubmit(e) {
+            e.preventDefault();
+            
+            const chinese = elements.chineseInput.value.trim();
+            const english = elements.englishInput.value.trim();
+            
+            if (!chinese || !english) {
+                alert('请填写中文和英文内容');
+                return;
+            }
+            
+            const editId = elements.addForm.dataset.editId;
+            
+            if (editId) {
+                // 编辑现有项目
+                const itemIndex = appState.items.findIndex(item => item.id === editId);
+                if (itemIndex !== -1) {
+                    appState.items[itemIndex].chinese = chinese;
+                    appState.items[itemIndex].english = english;
+                }
+            } else {
+                // 添加新项目
+                appState.items.push({
+                    id: generateId(),
+                    chinese,
+                    english,
+                    selected: false
+                });
+            }
+            
+            // 保存数据
+            saveData();
+            
+            // 重新渲染列表
+            renderContentList();
+            
+            // 更新计数
+            updateCounts();
+            
+            // 关闭模态框
+            closeModal();
+        }
+
+        // 处理导入表单提交
+        function handleImportFormSubmit(e) {
+            e.preventDefault();
+            
+            const text = elements.importTextarea.value.trim();
+            
+            if (!text) {
+                alert('请输入要导入的内容');
+                return;
+            }
+            
+            const lines = text.split('\n');
+            let importedCount = 0;
+            
+            lines.forEach(line => {
+                const trimmedLine = line.trim();
+                if (!trimmedLine) return;
+                
+                const parts = trimmedLine.split('|');
+                if (parts.length !== 2) return;
+                
+                const chinese = parts[0].trim();
+                const english = parts[1].trim();
+                
+                if (chinese && english) {
+                    appState.items.push({
+                        id: generateId(),
+                        chinese,
+                        english,
+                        selected: false,
+                        folder: appState.currentFolder === 'all' ? 'default' : appState.currentFolder
+                    });
+                    importedCount++;
+                }
+            });
+            
+            if (importedCount === 0) {
+                alert('没有有效的内容被导入，请检查格式');
+                return;
+            }
+            
+            // 保存数据
+            saveData();
+            
+            // 重新渲染列表
+            renderContentList();
+            
+            // 更新计数
+            updateCounts();
+            
+            // 关闭模态框
+            closeModal();
+            
+            alert(`成功导入 ${importedCount} 条内容`);
+        }
+
+        // 导出数据
+        function exportData() {
+            if (appState.items.length === 0) {
+                alert('没有内容可导出');
+                return;
+            }
+            
+            let exportText = '';
+            
+            appState.items.forEach(item => {
+                exportText += `${item.chinese} | ${item.english}\n`;
+            });
+            
+            // 创建下载链接
+            const blob = new Blob([exportText], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `english_memory_export_${new Date().toISOString().split('T')[0]}.txt`;
+            
+            // 触发下载
+            document.body.appendChild(a);
+            a.click();
+            
+            // 清理
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 0);
+        }
+
+        // 切换全选
+        function toggleSelectAll() {
+            // 根据当前文件夹筛选项目
+            const itemsToToggle = appState.currentFolder === 'all' 
+                ? appState.items 
+                : appState.items.filter(item => item.folder === appState.currentFolder);
+            
+            // 检查是否所有项目都已选中
+            const allChecked = itemsToToggle.every(item => item.selected);
+            
+            // 切换选中状态
+            itemsToToggle.forEach(item => {
+                item.selected = !allChecked;
+            });
+            
+            // 保存数据
+            saveData();
+            
+            // 重新渲染列表
+            renderContentList();
+            
+            // 更新计数
+            updateCounts();
+            
+            // 更新按钮文本
+            const currentText = elements.selectAllBtn.textContent.trim();
+            if (currentText === '全选') {
+                elements.selectAllBtn.textContent = '取消全选';
+            } else {
+                elements.selectAllBtn.textContent = '全选';
+            }
+        }
+
+        // 编辑项目
+        function editItem(item) {
+            openAddModal(item);
+        }
+
+        // 删除项目
+        function deleteItem(id) {
+            if (!confirm('确定要删除这条内容吗？')) return;
+            
+            const itemIndex = appState.items.findIndex(item => item.id === id);
+            
+            if (itemIndex !== -1) {
+                appState.items.splice(itemIndex, 1);
+                
+                // 保存数据
+                saveData();
+                
+                // 重新渲染列表
+                renderContentList();
+                
+                // 更新计数
+                updateCounts();
+            }
+        }
+
+        // 删除选中的项目
+        function deleteSelectedItems() {
+            console.log('执行删除选中项目函数');
+            
+            // 获取选中的项目
+            const selectedItems = appState.items.filter(item => item.selected);
+            console.log('选中的项目数量:', selectedItems.length);
+            
+            if (selectedItems.length === 0) {
+                alert('请先选择要删除的内容');
+                return;
+            }
+            
+            // 确认删除
+            if (confirm(`确定要删除选中的 ${selectedItems.length} 条内容吗？`)) {
+                console.log('用户确认删除');
+                
+                // 创建新的项目数组，排除选中的项目
+                const newItems = [];
+                for (let i = 0; i < appState.items.length; i++) {
+                    if (!appState.items[i].selected) {
+                        newItems.push(appState.items[i]);
+                    }
+                }
+                
+                // 更新项目数组
+                appState.items = newItems;
+                console.log('删除后剩余项目数量:', appState.items.length);
+                
+                // 保存数据
+                saveData();
+                console.log('数据保存成功');
+                
+                // 重新渲染列表
+                renderContentList();
+                console.log('列表重新渲染成功');
+                
+                // 更新计数
+                updateCounts();
+                console.log('计数更新成功');
+            } else {
+                console.log('用户取消删除');
+            }
+        }
+
+        // 打开文件夹模态框
+        function openFolderModal() {
+            // 清空表单
+            elements.folderForm.reset();
+            
+            // 显示模态框
+            elements.folderModal.classList.remove('hidden');
+            
+            // 聚焦输入框
+            elements.folderName.focus();
+        }
+
+        // 处理文件夹表单提交
+        function handleFolderFormSubmit(e) {
+            e.preventDefault();
+            
+            const folderName = elements.folderName.value.trim();
+            
+            if (!folderName) {
+                alert('请输入文件夹名称');
+                return;
+            }
+            
+            // 检查文件夹名称是否已存在
+            if (appState.folders.some(folder => folder.name === folderName)) {
+                alert('文件夹名称已存在');
+                return;
+            }
+            
+            // 创建新文件夹
+            appState.folders.push({
+                id: generateId(),
+                name: folderName
+            });
+            
+            // 保存文件夹数据
+            saveFolders();
+            
+            // 重新渲染文件夹列表
+            renderFolders();
+            
+            // 关闭模态框
+            closeModal();
+        }
+
+        // 绑定文件夹按钮事件
+        function bindFolderEvents() {
+            // 文件夹切换事件
+            document.querySelectorAll('.folder-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    // 如果点击的是删除文件夹按钮，不切换文件夹
+                    if (e.target.closest('.delete-folder-btn')) {
+                        return;
+                    }
+                    
+                    const folderId = btn.dataset.folder;
+                    appState.currentFolder = folderId;
+                    
+                    // 重新渲染文件夹列表和内容列表
+                    renderFolders();
+                    renderContentList();
+                });
+            });
+            
+            // 删除文件夹按钮事件
+            document.querySelectorAll('.delete-folder-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    console.log('删除文件夹按钮被点击');
+                    e.stopPropagation(); // 阻止事件冒泡
+                    
+                    const folderId = this.dataset.folderId;
+                    console.log('要删除的文件夹ID:', folderId);
+                    
+                    // 检查是否是默认文件夹
+                    if (folderId === 'default') {
+                        alert('默认文件夹不能删除');
+                        return;
+                    }
+                    
+                    // 确认操作
+                    if (confirm('确定要删除这个文件夹吗？文件夹中的内容将移至默认文件夹。')) {
+                        console.log('用户确认删除');
+                        
+                        // 将该文件夹中的项目移到默认文件夹
+                        appState.items.forEach(item => {
+                            if (item.folder === folderId) {
+                                item.folder = 'default';
+                            }
+                        });
+                        
+                        // 删除文件夹
+                        appState.folders = appState.folders.filter(f => f.id !== folderId);
+                        
+                        // 如果当前选中的是被删除的文件夹，切换到全部
+                        if (appState.currentFolder === folderId) {
+                            appState.currentFolder = 'all';
+                        }
+                        
+                        // 保存数据
+                        saveData();
+                        saveFolders();
+                        
+                        // 重新渲染
+                        renderFolders();
+                        renderContentList();
+                        
+                        console.log('文件夹删除成功');
+                    } else {
+                        console.log('用户取消删除');
+                    }
+                });
+            });
+        }
+
+        // 渲染文件夹选择器
+        function renderFolderSelect(selectedFolder = 'default') {
+            elements.folderSelect.innerHTML = '';
+            
+            appState.folders.forEach(folder => {
+                const option = document.createElement('option');
+                option.value = folder.id;
+                option.textContent = folder.name;
+                option.selected = folder.id === selectedFolder;
+                elements.folderSelect.appendChild(option);
+            });
+        }
+
+        // 修改编辑项目函数
+        function editItem(item) {
+            elements.chineseInput.value = item.chinese;
+            elements.englishInput.value = item.english;
+            elements.addForm.dataset.editId = item.id;
+            
+            // 渲染文件夹选择器并选中当前文件夹
+            renderFolderSelect(item.folder);
+            
+            // 显示模态框
+            elements.addModal.classList.remove('hidden');
+            
+            // 聚焦第一个输入框
+            elements.chineseInput.focus();
+        }
+
+        // 修改添加表单提交处理函数
+        function handleAddFormSubmit(e) {
+            e.preventDefault();
+            
+            const chinese = elements.chineseInput.value.trim();
+            const english = elements.englishInput.value.trim();
+            const folderId = elements.folderSelect.value;
+            
+            if (!chinese || !english) {
+                alert('请填写中文和英文内容');
+                return;
+            }
+            
+            const editId = elements.addForm.dataset.editId;
+            
+            if (editId) {
+                // 编辑现有项目
+                const itemIndex = appState.items.findIndex(item => item.id === editId);
+                if (itemIndex !== -1) {
+                    appState.items[itemIndex].chinese = chinese;
+                    appState.items[itemIndex].english = english;
+                    appState.items[itemIndex].folder = folderId;
+                }
+            } else {
+                // 添加新项目
+                appState.items.push({
+                    id: generateId(),
+                    chinese,
+                    english,
+                    selected: false,
+                    folder: folderId
+                });
+            }
+            
+            // 保存数据
+            saveData();
+            
+            // 重新渲染列表
+            renderContentList();
+            
+            // 更新计数
+            updateCounts();
+            
+            // 关闭模态框
+            closeModal();
+        }
+
+        // 修改打开添加模态框函数
+        function openAddModal(item = null) {
+            // 渲染文件夹选择器
+            renderFolderSelect();
+            
+            // 如果是编辑模式，填充表单
+            if (item) {
+                elements.chineseInput.value = item.chinese;
+                elements.englishInput.value = item.english;
+                elements.addForm.dataset.editId = item.id;
+                
+                // 选中当前文件夹
+                elements.folderSelect.value = item.folder;
+            } else {
+                // 清空表单
+                elements.addForm.reset();
+                delete elements.addForm.dataset.editId;
+            }
+            
+            // 显示模态框
+            elements.addModal.classList.remove('hidden');
+            
+            // 聚焦第一个输入框
+            elements.chineseInput.focus();
+        }
+
+        // 修改初始化应用函数
+        function initApp() {
+            // 从本地存储加载数据
+            loadData();
+            
+            // 渲染文件夹列表
+            renderFolders();
+            
+            // 渲染内容列表
+            renderContentList();
+            
+            // 更新计数
+            updateCounts();
+            
+            // 绑定事件
+            bindEvents();
+        }
+
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
